@@ -1,5 +1,5 @@
 name: 'Shopify Theme :: Backup files'
-description: 'Copy theme files, zip and store as GitHub artifact.'
+description: 'Copy live theme files, zip and store as GitHub artifact.'
 inputs:
   #
   # Shopify store details
