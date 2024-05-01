@@ -1,0 +1,68 @@
+name: 'Shopify Theme :: Backup files'
+description: 'Copy theme files, zip and store as GitHub artifact.'
+inputs:
+  #
+  # Shopify store details
+  #
+  store-name:
+    description: 'Shopify store name'
+    required: true
+    default: 'My Store'
+  store-url:
+    description: 'Shopify store URL'
+    required: true
+    default: 'my-store.myshopify.com'
+  store-password:
+    description: 'Secret to access your store. 1. Install "Theme access" app. 2. Create password. 3. Use it here. Shopify help page https://shopify.dev/docs/themes/tools/theme-access#install-the-theme-access-app'
+    required: true
+    default: 'Generate your password with the Theme access app'
+  #
+  # Files to backup
+  #
+  files:
+    description: 'Files to include in the backup. Flag(s) allowed by "shopify theme pull" command. Shopify help page https://shopify.dev/docs/api/shopify-cli/theme/theme-pull'
+    required: false
+    default: '--only "templates/*.json" --only "config/*" --only "sections/*.json"'
+runs:
+  using: "composite"
+  steps:
+    #
+    # Install tools (node, ruby, Shopify CLI)
+    #
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 20
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: 3.1
+        bundler: "latest"
+    - name: Install Shopify CLI
+      run: npm install -g @shopify/cli@3.58.2 @shopify/theme@3.58.2
+      shell: bash
+    #
+    # Get files
+    #
+    - name: 'Get files from live theme at store ${{ inputs.store-name }}'
+      env:
+        SHOPIFY_FLAG_STORE: '${{ inputs.store-url }}'
+        SHOPIFY_CLI_THEME_TOKEN: ${{ inputs.store-password }}
+        SHOPIFY_CLI_TTY: 0
+      run: shopify theme pull --live ${{ inputs.files }} --path ./backup-${{ inputs.store-name }}
+      shell: bash
+    #
+    # ZIP
+    #
+    - name: Zip files
+      run: zip backup-${{ inputs.store-name }}.zip ./backup-${{ inputs.store-name }}/* -r
+      shell: bash
+    #
+    # Upload
+    #
+    - name: Upload file archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: backup-${{ inputs.store-name }}
+        path: backup-${{ inputs.store-name }}.zip
+branding:
+  icon: 'download'
+  color: 'white'
